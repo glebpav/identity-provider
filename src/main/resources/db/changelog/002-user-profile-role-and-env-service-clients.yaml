@@ -1,0 +1,56 @@
+databaseChangeLog:
+  - changeSet:
+      id: 002-user-profile-role-and-env-service-clients
+      author: codex
+      changes:
+        - addColumn:
+            tableName: users
+            columns:
+              - column:
+                  name: first_name
+                  type: varchar(128)
+                  defaultValue: Unknown
+                  constraints:
+                    nullable: false
+              - column:
+                  name: last_name
+                  type: varchar(128)
+                  defaultValue: User
+                  constraints:
+                    nullable: false
+              - column:
+                  name: role
+                  type: varchar(64)
+                  defaultValue: AUDITOR
+                  constraints:
+                    nullable: false
+        - dropDefaultValue:
+            tableName: users
+            columnName: first_name
+        - dropDefaultValue:
+            tableName: users
+            columnName: last_name
+        - dropDefaultValue:
+            tableName: users
+            columnName: role
+        - sql:
+            sql: |
+              update users
+              set role = case
+                  when exists (
+                      select 1
+                      from user_roles ur
+                      join roles r on r.id = ur.role_id
+                      where ur.user_id = users.id and r.name = 'ADMIN'
+                  ) then 'ADMIN'
+                  else 'AUDITOR'
+              end
+        - dropTable:
+            tableName: user_roles
+            cascadeConstraints: true
+        - dropTable:
+            tableName: roles
+            cascadeConstraints: true
+        - dropTable:
+            tableName: service_clients
+            cascadeConstraints: true

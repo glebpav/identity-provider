@@ -1,0 +1,35 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: identity-provider-postgres
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-identity_provider}
+      POSTGRES_USER: ${POSTGRES_USER:-identity}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-identity_password}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-identity} -d ${POSTGRES_DB:-identity_provider}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  identity-provider:
+    build: .
+    container_name: identity-provider
+    depends_on:
+      postgres:
+        condition: service_healthy
+    env_file:
+      - .env
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-identity_provider}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-identity}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-identity_password}
+    ports:
+      - "${SERVER_PORT:-8080}:${SERVER_PORT:-8080}"
+
+volumes:
+  postgres-data:
