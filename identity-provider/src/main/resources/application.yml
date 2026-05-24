@@ -55,7 +55,7 @@ identity:
       client-secret: ${REPORTS_CLIENT_SECRET:reports-local-secret}
       scopes: ${REPORTS_SCOPES:reports:read,reports:write}
   cors:
-    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000,http://localhost:5173}
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:*}
   security:
     issuer: ${JWT_ISSUER:http://localhost:8080}
     access-token-ttl: ${JWT_ACCESS_TOKEN_TTL:PT15M}

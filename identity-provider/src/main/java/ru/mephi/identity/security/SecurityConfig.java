@@ -2,6 +2,7 @@ package ru.mephi.identity.security;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -54,7 +55,7 @@ public class SecurityConfig {
     @Bean
     CorsConfigurationSource corsConfigurationSource(@Value("${identity.cors.allowed-origins}") String allowedOrigins) {
         var configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(Arrays.stream(allowedOrigins.split(",")).map(String::trim).toList());
+        configuration.setAllowedOriginPatterns(patterns(allowedOrigins));
         configuration.setAllowedMethods(Lists.methods());
         configuration.setAllowedHeaders(Lists.headers());
         configuration.setAllowCredentials(true);
@@ -85,13 +86,21 @@ public class SecurityConfig {
         return converter;
     }
 
+    private List<String> patterns(String allowedOrigins) {
+        var patterns = Arrays.stream(allowedOrigins.split(","))
+            .map(String::trim)
+            .filter(origin -> !origin.isBlank())
+            .toList();
+        return patterns.isEmpty() ? List.of("*") : patterns;
+    }
+
     private static final class Lists {
         private static java.util.List<String> methods() {
             return java.util.List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS");
         }
 
         private static java.util.List<String> headers() {
-            return java.util.List.of("Authorization", "Content-Type", "X-Requested-With");
+            return java.util.List.of("*");
         }
     }
 }

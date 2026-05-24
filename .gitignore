@@ -12,6 +12,7 @@ docker/.env
 
 **/target/
 **/build/
+**/bin/
 **/.gradle/
 **/.gradle-local/
 **/outputs/
