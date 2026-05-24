@@ -92,6 +92,43 @@ Health:
 http://localhost:8083/actuator/health
 ```
 
+## JWT RSA Keys
+
+For local development, leave both values empty and the app will generate an in-memory key pair:
+
+```env
+JWT_PRIVATE_KEY=
+JWT_PUBLIC_KEY=
+```
+
+For a server deployment, configure both keys. Generate the correct formats:
+
+```bash
+openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:2048 -out jwt-private.pem
+openssl rsa -pubout -in jwt-private.pem -out jwt-public.pem
+```
+
+`jwt-private.pem` must start with:
+
+```text
+-----BEGIN PRIVATE KEY-----
+```
+
+`jwt-public.pem` must start with:
+
+```text
+-----BEGIN PUBLIC KEY-----
+```
+
+In `.env` or Docker env vars, keep each PEM on one line with escaped newlines:
+
+```bash
+JWT_PRIVATE_KEY="$(awk 'NF {sub(/\r/, ""); printf "%s\\n",$0;}' jwt-private.pem)"
+JWT_PUBLIC_KEY="$(awk 'NF {sub(/\r/, ""); printf "%s\\n",$0;}' jwt-public.pem)"
+```
+
+Do not use `BEGIN RSA PRIVATE KEY` or `BEGIN RSA PUBLIC KEY` for these env values.
+
 ## Bootstrap Admin
 
 Local `.env` creates the first admin if it does not exist:

@@ -26,8 +26,13 @@ public class JwtKeyConfig {
 
     @Bean
     RSAKey rsaKey(IdentitySecurityProperties properties) {
-        if (hasText(properties.getPrivateKey()) && hasText(properties.getPublicKey())) {
-            return fromPem(properties.getPrivateKey(), properties.getPublicKey());
+        var privateKey = normalizeConfiguredValue(properties.getPrivateKey());
+        var publicKey = normalizeConfiguredValue(properties.getPublicKey());
+        if (hasText(privateKey) != hasText(publicKey)) {
+            throw new IllegalStateException("JWT_PRIVATE_KEY and JWT_PUBLIC_KEY must be configured together, or both must be empty for local development key generation");
+        }
+        if (hasText(privateKey)) {
+            return fromPem(privateKey, publicKey);
         }
         return generatedDevKey();
     }
@@ -59,7 +64,12 @@ public class JwtKeyConfig {
                 .keyID(UUID.randomUUID().toString())
                 .build();
         } catch (Exception exception) {
-            throw new IllegalStateException("Invalid RSA key configuration", exception);
+            throw new IllegalStateException(
+                "Invalid RSA key configuration. Expected JWT_PRIVATE_KEY as PKCS#8 PEM '-----BEGIN PRIVATE KEY-----' "
+                    + "and JWT_PUBLIC_KEY as X.509 PEM '-----BEGIN PUBLIC KEY-----'. "
+                    + "For env files, keep keys on one line with escaped newlines '\\n'.",
+                exception
+            );
         }
     }
 
@@ -78,12 +88,30 @@ public class JwtKeyConfig {
     }
 
     private byte[] decodePem(String value) {
-        var normalized = value
+        var normalized = normalizeConfiguredValue(value)
             .replace("\\n", "\n")
+            .replace("\\r", "")
             .replaceAll("-----BEGIN (.*)-----", "")
             .replaceAll("-----END (.*)-----", "")
             .replaceAll("\\s", "");
+        if (normalized.isBlank()) {
+            throw new IllegalArgumentException("RSA key value is empty after PEM normalization");
+        }
         return Base64.getDecoder().decode(normalized);
+    }
+
+    private String normalizeConfiguredValue(String value) {
+        if (value == null) {
+            return null;
+        }
+        var normalized = value.trim();
+        if ((normalized.startsWith("\"") && normalized.endsWith("\"")) || (normalized.startsWith("'") && normalized.endsWith("'"))) {
+            normalized = normalized.substring(1, normalized.length() - 1).trim();
+        }
+        if (normalized.isBlank() || normalized.equalsIgnoreCase("null")) {
+            return null;
+        }
+        return normalized;
     }
 
     private boolean hasText(String value) {
